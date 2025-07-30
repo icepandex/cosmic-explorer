@@ -1,0 +1,2787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmic Explorer Simulator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Space+Mono:wght@400;700&family=Montserrat:wght@300;600;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cosmic-blue: #00aaff;
+            --deep-space: #00051a;
+            --nebula-purple: #9d00ff;
+            --starlight: #ffffff;
+            --planet-glow: rgba(0, 170, 255, 0.3);
+            --ui-accent: #00ffcc;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: radial-gradient(ellipse at center, var(--deep-space) 0%, #000000 100%);
+            color: var(--starlight);
+            overflow-x: hidden;
+            min-height: 100vh;
+            perspective: 1000px;
+        }
+
+        /* Particle Background */
+        #particles-js {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: linear-gradient(135deg, #00051a 0%, #000000 100%);
+        }
+
+        /* Cosmic Glow Effects */
+        .cosmic-glow {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.3;
+        }
+
+        .glow-1 {
+            background: radial-gradient(circle at 20% 30%, var(--nebula-purple), transparent 50%);
+            animation: drift-1 30s infinite alternate ease-in-out;
+        }
+
+        .glow-2 {
+            background: radial-gradient(circle at 70% 80%, var(--cosmic-blue), transparent 50%);
+            animation: drift-2 40s infinite alternate ease-in-out;
+        }
+
+        @keyframes drift-1 {
+            0% { transform: translate(-10%, -10%); }
+            100% { transform: translate(10%, 10%); }
+        }
+
+        @keyframes drift-2 {
+            0% { transform: translate(5%, -5%); }
+            100% { transform: translate(-5%, 5%); }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header with Holographic Effect */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            background: rgba(0, 5, 26, 0.7);
+            border-radius: 20px;
+            padding: 40px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(0, 170, 255, 0.2);
+            box-shadow: 0 0 50px rgba(0, 100, 255, 0.2),
+                        inset 0 0 20px rgba(0, 170, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            transform-style: preserve-3d;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                to bottom right,
+                transparent 45%,
+                rgba(0, 170, 255, 0.1) 50%,
+                transparent 55%
+            );
+            animation: hologram 6s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes hologram {
+            0% { transform: rotate(0deg) translateY(0); }
+            100% { transform: rotate(360deg) translateY(0); }
+        }
+
+        .header h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 4em;
+            font-weight: 900;
+            margin-bottom: 15px;
+            background: linear-gradient(90deg, var(--ui-accent), var(--cosmic-blue));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 3px;
+            text-shadow: 0 0 20px rgba(0, 170, 255, 0.3);
+            position: relative;
+            z-index: 2;
+        }
+
+        .header p {
+            font-size: 1.3em;
+            color: rgba(255, 255, 255, 0.8);
+            letter-spacing: 1px;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Navigation Tabs with Neon Effect */
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+            gap: 15px;
+            background: rgba(0, 10, 30, 0.7);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 170, 255, 0.2);
+            box-shadow: 0 0 30px rgba(0, 100, 255, 0.1),
+                        inset 0 0 15px rgba(0, 170, 255, 0.1);
+        }
+
+        .tab-btn {
+            background: linear-gradient(135deg, 
+                rgba(0, 100, 200, 0.3) 0%, 
+                rgba(0, 50, 150, 0.3) 100%);
+            border: none;
+            color: var(--starlight);
+            padding: 16px 30px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 1;
+        }
+
+        .tab-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, 
+                rgba(0, 170, 255, 0.7) 0%, 
+                rgba(0, 100, 200, 0.7) 100%);
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .tab-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 170, 255, 0.4),
+                        0 0 15px rgba(0, 255, 255, 0.3);
+            color: white;
+        }
+
+        .tab-btn:hover::before {
+            opacity: 1;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, 
+                rgba(0, 170, 255, 0.7) 0%, 
+                rgba(0, 100, 200, 0.7) 100%);
+            box-shadow: 0 0 25px rgba(0, 170, 255, 0.5),
+                        0 0 10px rgba(0, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            height: 3px;
+            background: var(--ui-accent);
+            border-radius: 3px;
+            box-shadow: 0 0 10px var(--ui-accent);
+        }
+
+        /* Page Content with Glass Morphism */
+        .page {
+            display: none;
+            background: rgba(0, 10, 30, 0.7);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(0, 170, 255, 0.2);
+            box-shadow: 0 0 50px rgba(0, 100, 255, 0.1),
+                        inset 0 0 20px rgba(0, 170, 255, 0.1);
+            margin-bottom: 30px;
+            transform: translateY(30px);
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .page.active {
+            display: block;
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .page h2 {
+            color: var(--ui-accent);
+            font-size: 2.8em;
+            margin-bottom: 30px;
+            text-align: center;
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 2px;
+            position: relative;
+            padding-bottom: 15px;
+        }
+
+        .page h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--ui-accent), transparent);
+            border-radius: 3px;
+        }
+
+        /* 3D Solar System Canvas */
+        #solarSystemCanvas {
+            width: 100%;
+            height: 700px;
+            border-radius: 15px;
+            border: 1px solid rgba(0, 170, 255, 0.3);
+            background: radial-gradient(ellipse at center, #000022 0%, #000000 100%);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 60px rgba(0, 100, 255, 0.2),
+                        inset 0 0 30px rgba(0, 170, 255, 0.1);
+            margin: 20px 0;
+        }
+
+        /* Control Panels with Futuristic Design */
+        .controls-panel {
+            background: rgba(0, 20, 50, 0.5);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+            border: 1px solid rgba(0, 170, 255, 0.3);
+            box-shadow: 0 0 40px rgba(0, 100, 255, 0.1),
+                        inset 0 0 15px rgba(0, 170, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .controls-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--ui-accent), transparent);
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .control-group label {
+            color: var(--ui-accent);
+            font-weight: 600;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            font-size: 14px;
+            letter-spacing: 1px;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .control-group input, .control-group select {
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(0, 30, 70, 0.7);
+            color: var(--starlight);
+            font-family: 'Space Mono', monospace;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            border-left: 3px solid var(--ui-accent);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .control-group input:focus, .control-group select:focus {
+            outline: none;
+            background: rgba(0, 50, 100, 0.8);
+            box-shadow: inset 0 0 15px rgba(0, 170, 255, 0.2),
+                        0 0 15px rgba(0, 170, 255, 0.2);
+        }
+
+        .location-info {
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        /* Cosmic Buttons with Holographic Effect */
+        .button-group {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .cosmic-btn {
+            background: linear-gradient(135deg, 
+                rgba(0, 100, 200, 0.7) 0%, 
+                rgba(0, 170, 255, 0.7) 100%);
+            color: white;
+            border: none;
+            padding: 16px 35px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0, 170, 255, 0.3);
+            z-index: 1;
+        }
+
+        .cosmic-btn::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                to bottom right,
+                transparent 45%,
+                rgba(255, 255, 255, 0.2) 50%,
+                transparent 55%
+            );
+            transform: rotate(45deg);
+            z-index: -1;
+            transition: all 0.5s ease;
+        }
+
+        .cosmic-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 170, 255, 0.5),
+                        0 0 20px rgba(0, 255, 255, 0.3);
+        }
+
+        .cosmic-btn:hover::before {
+            left: 100%;
+        }
+
+        .cosmic-btn.active {
+            background: linear-gradient(135deg, 
+                rgba(0, 170, 255, 0.9) 0%, 
+                rgba(0, 255, 255, 0.7) 100%);
+            box-shadow: 0 0 30px rgba(0, 204, 255, 0.7),
+                        0 0 15px rgba(0, 255, 255, 0.5);
+        }
+
+        /* Planet Info Cards with Glass Effect */
+        .planet-info {
+            background: rgba(0, 20, 50, 0.5);
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+            border: 1px solid rgba(0, 170, 255, 0.3);
+            box-shadow: 0 0 40px rgba(0, 100, 255, 0.1),
+                        inset 0 0 15px rgba(0, 170, 255, 0.1);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .planet-info::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 3px;
+            height: 100%;
+            background: linear-gradient(to bottom, transparent, var(--ui-accent), transparent);
+        }
+
+        .planet-info h3 {
+            color: var(--ui-accent);
+            text-align: center;
+            margin-bottom: 25px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8em;
+            letter-spacing: 1px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .info-item {
+            background: rgba(0, 30, 70, 0.5);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 170, 255, 0.2);
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .info-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                135deg,
+                rgba(0, 170, 255, 0.1) 0%,
+                transparent 100%
+            );
+            z-index: -1;
+        }
+
+        .info-item:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 170, 255, 0.3);
+            border-color: rgba(0, 170, 255, 0.5);
+        }
+
+        .info-item strong {
+            color: var(--ui-accent);
+            display: block;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            font-size: 13px;
+            letter-spacing: 1px;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .info-item span {
+            color: var(--starlight);
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        /* Calendar Converter Section */
+        .calendar-converter {
+            background: rgba(0, 20, 50, 0.5);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 40px;
+            border: 1px solid rgba(0, 170, 255, 0.3);
+            box-shadow: 0 0 40px rgba(0, 100, 255, 0.1),
+                        inset 0 0 15px rgba(0, 170, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .calendar-item {
+            background: rgba(0, 30, 70, 0.5);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(0, 170, 255, 0.2);
+            transition: all 0.5s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .calendar-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 3px;
+            height: 100%;
+            background: linear-gradient(to bottom, transparent, var(--ui-accent), transparent);
+        }
+
+        .calendar-item:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 170, 255, 0.3);
+        }
+
+        .calendar-item h4 {
+            color: var(--ui-accent);
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 1px;
+            position: relative;
+            display: inline-block;
+        }
+
+        .calendar-item h4::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 50px;
+            height: 2px;
+            background: var(--ui-accent);
+            border-radius: 2px;
+        }
+
+        .date-display {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: var(--starlight);
+            font-family: 'Space Mono', monospace;
+            margin: 15px 0;
+            letter-spacing: 1px;
+        }
+
+        .additional-info {
+            font-size: 1.1em;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 10px;
+            line-height: 1.6;
+        }
+
+        /* Lunar Phase Visual */
+        .lunar-phase-container {
+            display: flex;
+            justify-content: center;
+            margin: 30px 0;
+        }
+
+        .lunar-phase-visual {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #f0f0f0 30%, #333 70%);
+            position: relative;
+            border: 3px solid var(--ui-accent);
+            box-shadow: 0 0 40px rgba(0, 170, 255, 0.3),
+                        inset 0 0 20px rgba(0, 170, 255, 0.2);
+            transition: all 0.5s ease;
+        }
+
+        .lunar-phase-visual:hover {
+            transform: scale(1.1) rotate(10deg);
+            box-shadow: 0 0 60px rgba(0, 170, 255, 0.5),
+                        inset 0 0 30px rgba(0, 170, 255, 0.3);
+        }
+
+        /* FPS Counter */
+        .fps-counter {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #00ff00;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            z-index: 1000;
+            border: 1px solid rgba(0, 255, 0, 0.3);
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #00051a 0%, #000000 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 10000;
+        }
+
+        .loading-content {
+            text-align: center;
+            position: relative;
+        }
+
+        .loading-spinner {
+            width: 80px;
+            height: 80px;
+            border: 5px solid rgba(0, 170, 255, 0.2);
+            border-top: 5px solid var(--ui-accent);
+            border-radius: 50%;
+            animation: spin 1.5s linear infinite;
+            margin: 0 auto 30px;
+            box-shadow: 0 0 30px rgba(0, 170, 255, 0.5);
+            position: relative;
+        }
+
+        .loading-spinner::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            border: 3px solid rgba(0, 170, 255, 0.1);
+            border-radius: 50%;
+            animation: spin 3s linear infinite reverse;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: var(--ui-accent);
+            font-size: 2.5em;
+            font-family: 'Orbitron', sans-serif;
+            text-shadow: 0 0 15px rgba(0, 170, 255, 0.5);
+            letter-spacing: 3px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .loading-text::after {
+            content: '...';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        .loading-subtext {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.2em;
+            margin-top: 15px;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        /* Creator Info Section */
+        .creator-info {
+            background: linear-gradient(135deg, 
+                rgba(0, 100, 200, 0.2) 0%, 
+                rgba(0, 50, 150, 0.2) 100%);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 40px;
+            border: 1px solid rgba(0, 170, 255, 0.4);
+            text-align: center;
+            box-shadow: 0 0 50px rgba(0, 100, 255, 0.2),
+                        inset 0 0 20px rgba(0, 170, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.5s ease;
+        }
+
+        .creator-info:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 0 80px rgba(0, 170, 255, 0.4);
+        }
+
+        .creator-info::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                135deg,
+                rgba(0, 170, 255, 0.1) 0%,
+                transparent 50%,
+                rgba(157, 0, 255, 0.1) 100%
+            );
+            z-index: -1;
+        }
+
+        .creator-name {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3em;
+            color: var(--ui-accent);
+            text-shadow: 0 0 25px rgba(0, 204, 255, 0.8);
+            margin-bottom: 15px;
+            background: linear-gradient(90deg, var(--ui-accent), var(--cosmic-blue));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 3px;
+        }
+
+        .creator-contact {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.5em;
+            margin-bottom: 25px;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .social-link {
+            color: var(--ui-accent);
+            font-size: 2em;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            position: relative;
+        }
+
+        .social-link::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--ui-accent);
+            transition: all 0.3s ease;
+        }
+
+        .social-link:hover {
+            color: white;
+            transform: translateY(-5px);
+            text-shadow: 0 0 20px rgba(0, 204, 255, 0.8);
+        }
+
+        .social-link:hover::after {
+            width: 100%;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .header h1 {
+                font-size: 3em;
+            }
+            
+            .page h2 {
+                font-size: 2.2em;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 30px 20px;
+            }
+            
+            .header h1 {
+                font-size: 2.2em;
+            }
+            
+            .header p {
+                font-size: 1em;
+            }
+            
+            .nav-tabs {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .tab-btn {
+                width: 100%;
+                text-align: center;
+                margin-bottom: 10px;
+            }
+            
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            #solarSystemCanvas {
+                height: 500px;
+            }
+            
+            .button-group {
+                gap: 10px;
+            }
+            
+            .cosmic-btn {
+                padding: 14px 25px;
+                font-size: 12px;
+            }
+            
+            .creator-name {
+                font-size: 2.2em;
+            }
+            
+            .creator-contact {
+                font-size: 1.2em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .page h2 {
+                font-size: 1.8em;
+            }
+            
+            .calendar-item h4 {
+                font-size: 1.2em;
+            }
+            
+            .date-display {
+                font-size: 1.2em;
+            }
+            
+            #solarSystemCanvas {
+                height: 400px;
+            }
+            
+            .loading-text {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Particle Background -->
+    <div id="particles-js"></div>
+    
+    <!-- Cosmic Glow Effects -->
+    <div class="cosmic-glow glow-1"></div>
+    <div class="cosmic-glow glow-2"></div>
+    
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">COSMIC EXPLORER</div>
+            <div class="loading-subtext">Initializing 3D Solar System</div>
+        </div>
+    </div>
+
+    <!-- FPS Counter -->
+    <div class="fps-counter" id="fpsCounter">FPS: 60</div>
+
+    <div class="container">
+        <div class="header">
+            <h1>COSMIC EXPLORER</h1>
+            <p>An immersive journey through our solar system with advanced astronomical tools and calendar systems</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="showPage('solar-system')">🪐 3D Solar System</button>
+            <button class="tab-btn" onclick="showPage('calendar-system')">📅 Calendar Converter</button>
+            <button class="tab-btn" onclick="showPage('lunar-data')">🌙 Lunar Information</button>
+            <button class="tab-btn" onclick="showPage('astronomical')">⭐ Astronomical Data</button>
+            <button class="tab-btn" onclick="showPage('info')">ℹ️ Creator Info</button>
+        </div>
+
+        <!-- 3D Solar System Page -->
+        <div class="page active" id="solar-system">
+            <h2>3D SOLAR SYSTEM VISUALIZATION</h2>
+            
+            <div class="controls-panel">
+                <div class="controls-grid">
+                    <div class="control-group">
+                        <label>🗓️ Date:</label>
+                        <input type="date" id="dateInput" value="">
+                    </div>
+                    <div class="control-group">
+                        <label>⏰ Time (UTC):</label>
+                        <input type="time" id="timeInput" value="12:00">
+                    </div>
+                    <div class="control-group">
+                        <label>⚡ Time Speed:</label>
+                        <select id="timeSpeed">
+                            <option value="0">Paused</option>
+                            <option value="1">Real Time</option>
+                            <option value="60">1 Min = 1 Hour</option>
+                            <option value="1440">1 Min = 1 Day</option>
+                            <option value="43200">1 Min = 1 Month</option>
+                            <option value="525600" selected>1 Min = 1 Year</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="button-group">
+                    <button class="cosmic-btn" onclick="setCurrentDateTime()">📅 Current Date/Time</button>
+                    <button class="cosmic-btn" onclick="updatePlanetaryPositions()">🔄 Update Positions</button>
+                    <button class="cosmic-btn" onclick="resetCamera()">🎯 Reset View</button>
+                    <button class="cosmic-btn" onclick="toggleAnimation()" id="animationBtn">⏸️ Pause</button>
+                </div>
+                
+                <div class="button-group" style="margin-top: 20px;">
+                    <button class="cosmic-btn" onclick="focusPlanet('sun')">☀️ Sun</button>
+                    <button class="cosmic-btn" onclick="focusPlanet('mercury')">Mercury</button>
+                    <button class="cosmic-btn" onclick="focusPlanet('venus')">Venus</button>
+                    <button class="cosmic-btn active" onclick="focusPlanet('earth')">🌍 Earth</button>
+                    <button class="cosmic-btn" onclick="focusPlanet('mars')">Mars</button>
+                    <button class="cosmic-btn" onclick="focusPlanet('jupiter')">Jupiter</button>
+                    <button class="cosmic-btn" onclick="focusPlanet('saturn')">Saturn</button>
+                    <button class="cosmic-btn" onclick="focusPlanet('uranus')">Uranus</button>
+                    <button class="cosmic-btn" onclick="focusPlanet('neptune')">Neptune</button>
+                </div>
+            </div>
+
+            <div id="solarSystemCanvas"></div>
+
+            <div class="planet-info">
+                <h3>PLANETARY INFORMATION</h3>
+                <div id="planetDetails">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <strong>Selected Planet</strong>
+                            <span id="selectedPlanet">Earth</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Distance from Sun</strong>
+                            <span id="planetDistance">149.6 million km</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Orbital Period</strong>
+                            <span id="planetPeriod">365.25 days</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Current Position</strong>
+                            <span id="planetPosition">X: 0, Y: 0, Z: 0</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Orbital Angle</strong>
+                            <span id="planetAngle">0°</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Orbital Velocity</strong>
+                            <span id="planetVelocity">29.78 km/s</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calendar System Page -->
+        <div class="page" id="calendar-system">
+            <h2>MULTI-CALENDAR CONVERSION SYSTEM</h2>
+            
+            <div class="controls-panel">
+                <div class="controls-grid">
+                    <div class="control-group">
+                        <label>🗓️ Input Date:</label>
+                        <input type="date" id="calendarDate" value="">
+                    </div>
+                    <div class="control-group">
+                        <label>🌐 Calendar System:</label>
+                        <select id="calendarSystem">
+                            <option value="gregorian">Gregorian</option>
+                            <option value="hindu">Hindu (Vikram Samvat)</option>
+                            <option value="islamic">Islamic (Hijri)</option>
+                            <option value="ethiopian">Ethiopian</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="cosmic-btn" onclick="convertCalendars()" style="margin: 25px auto; display: block;">🔄 Convert Calendars</button>
+            </div>
+
+            <div class="calendar-converter">
+                <div class="calendar-item">
+                    <h4>📅 Gregorian Calendar</h4>
+                    <div class="date-display" id="gregorianDate">-</div>
+                    <div class="additional-info" id="gregorianInfo">-</div>
+                </div>
+                
+                <div class="calendar-item">
+                    <h4>🕉️ Hindu Calendar (Panchang)</h4>
+                    <div class="date-display" id="hinduCalDate">-</div>
+                    <div class="additional-info" id="hinduCalInfo">-</div>
+                </div>
+                
+                <div class="calendar-item">
+                    <h4>🌙 Islamic Calendar (Hijri)</h4>
+                    <div class="date-display" id="islamicCalDate">-</div>
+                    <div class="additional-info" id="islamicCalInfo">-</div>
+                </div>
+                
+                <div class="calendar-item">
+                    <h4>🇪🇹 Ethiopian Calendar</h4>
+                    <div class="date-display" id="ethiopianCalDate">-</div>
+                    <div class="additional-info" id="ethiopianCalInfo">-</div>
+                </div>
+                
+                <div class="calendar-item">
+                    <h4>🌟 Astronomical Data</h4>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <strong>Julian Day Number</strong>
+                            <span id="julianDay">-</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Day of Year</strong>
+                            <span id="dayOfYear">-</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Week Number</strong>
+                            <span id="weekNumber">-</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Day of Week</strong>
+                            <span id="dayOfWeek">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lunar Data Page -->
+        <div class="page" id="lunar-data">
+            <h2>LUNAR INFORMATION & CYCLES</h2>
+            
+            <div class="controls-panel">
+                <div class="controls-grid">
+                    <div class="control-group">
+                        <label>🗓️ Date for Lunar Data:</label>
+                        <input type="date" id="lunarDate" value="">
+                    </div>
+                </div>
+                <button class="cosmic-btn" onclick="calculateLunarData()" style="margin: 25px auto; display: block;">🌙 Calculate Lunar Data</button>
+            </div>
+
+            <div class="calendar-converter">
+                <div class="calendar-item">
+                    <h4>🌙 Current Moon Phase</h4>
+                    <div style="text-align: center;">
+                        <div class="lunar-phase-container">
+                            <div class="lunar-phase-visual" id="lunarPhaseVisual"></div>
+                        </div>
+                        <div class="date-display" id="moonPhase">-</div>
+                        <div class="additional-info" id="moonPhaseInfo">-</div>
+                    </div>
+                </div>
+                
+                <div class="info-grid">
+                    <div class="info-item">
+                        <strong>Moon Age</strong>
+                        <span id="moonAge">-</span>
+                    </div>
+                    <div class="info-item">
+                        <strong>Illumination</strong>
+                        <span id="moonIllumination">-</span>
+                    </div>
+                    <div class="info-item">
+                        <strong>Distance from Earth</strong>
+                        <span id="moonDistance">-</span>
+                    </div>
+                    <div class="info-item">
+                        <strong>Angular Size</strong>
+                        <span id="moonAngularSize">-</span>
+                    </div>
+                    <div class="info-item">
+                        <strong>Rise Time</strong>
+                        <span id="moonRise">-</span>
+                    </div>
+                    <div class="info-item">
+                        <strong>Set Time</strong>
+                        <span id="moonSet">-</span>
+                    </div>
+                </div>
+                
+                <div class="calendar-item">
+                    <h4>🌙 Upcoming Moon Phases</h4>
+                    <div id="nextMoonPhases" class="additional-info">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Astronomical Data Page -->
+        <div class="page" id="astronomical">
+            <h2>ASTRONOMICAL CALCULATIONS</h2>
+            
+            <div class="controls-panel">
+                <div class="controls-grid">
+                    <div class="control-group">
+                        <label>🗓️ Date:</label>
+                        <input type="date" id="astroDate" value="">
+                    </div>
+                    <div class="control-group">
+                        <label>🌐 Latitude:</label>
+                        <input type="number" id="latitude" value="28.6139" step="0.0001" placeholder="Latitude">
+                        <div class="location-info" id="latitudeLocation">Location: New Delhi, India</div>
+                    </div>
+                    <div class="control-group">
+                        <label>🌐 Longitude:</label>
+                        <input type="number" id="longitude" value="77.2090" step="0.0001" placeholder="Longitude">
+                        <div class="location-info" id="longitudeLocation">Location: New Delhi, India</div>
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button class="cosmic-btn" onclick="calculateAstronomicalData()">⭐ Calculate Data</button>
+                    <button class="cosmic-btn" onclick="getCurrentLocation()">📍 Current Location</button>
+                    <button class="cosmic-btn" onclick="showLocationPicker()">🗺️ Pick Location</button>
+                </div>
+            </div>
+
+            <div class="calendar-converter">
+                <div class="calendar-item">
+                    <h4>☀️ Solar Information</h4>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <strong>Sunrise</strong>
+                            <span id="sunrise">-</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Sunset</strong>
+                            <span id="sunset">-</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Solar Noon</strong>
+                            <span id="solarNoon">-</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Daylight Duration</strong>
+                            <span id="daylightDuration">-</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Solar Declination</strong>
+                            <span id="solarDeclination">-</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Equation of Time</strong>
+                            <span id="equationOfTime">-</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="calendar-item">
+                    <h4>🌌 Advanced Astronomical Data</h4>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <strong>Sidereal Time</strong>
+                            <span id="siderealTime">-</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Earth's Season</strong>
+                            <span id="earthSeason">-</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Days in Year</strong>
+                            <span id="daysInYear">-</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Days Remaining</strong>
+                            <span id="daysRemaining">-</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="calendar-item">
+                    <h4>🌍 Solar Position Visualization</h4>
+                    <div id="sunPathContainer" style="width: 100%; height: 300px; background: rgba(0, 20, 50, 0.5); border-radius: 10px; position: relative; overflow: hidden;">
+                        <canvas id="sunPathCanvas" width="800" height="300" style="width: 100%; height: 100%;"></canvas>
+                    </div>
+                    <div class="additional-info" style="text-align: center; margin-top: 15px;">
+                        <span id="sunPositionInfo">Sun position at current time: -</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Creator Info Page -->
+        <div class="page" id="info">
+            <h2>CREATOR INFORMATION</h2>
+            
+            <div class="creator-info">
+                <div class="creator-name">AYUSH PANDEY</div>
+                <div class="creator-contact">ayushpandey@live.com</div>
+                <p style="color: rgba(255, 255, 255, 0.9); font-size: 1.2em; margin-bottom: 30px; line-height: 1.6;">
+                    Full Stack Developer | Astronomy Enthusiast | UI/UX Designer<br>
+                    Passionate about creating immersive educational experiences
+                </p>
+                <div class="social-links">
+                    <a href="#" class="social-link">🌐</a>
+                    <a href="#" class="social-link">💼</a>
+                    <a href="#" class="social-link">📧</a>
+                    <a href="#" class="social-link">🐙</a>
+                </div>
+            </div>
+            
+            <div class="calendar-converter">
+                <div class="calendar-item">
+                    <h4>🚀 PROJECT FEATURES</h4>
+                    <div class="additional-info" style="line-height: 1.6;">
+                        <strong>✨ 3D Solar System Visualization:</strong><br>
+                        • Real-time rendering of planets with accurate orbital mechanics<br>
+                        • Interactive camera controls (rotate, zoom, pan)<br>
+                        • Focus on specific planets with smooth animations<br><br>
+                        
+                        <strong>⏰ Date & Time Control:</strong><br>
+                        • Set any date/time to see planetary positions<br>
+                        • Time scaling (speed up/slow down simulation)<br>
+                        • Current date/time button for real-time data<br><br>
+                        
+                        <strong>📅 Calendar Conversion System:</strong><br>
+                        • Gregorian calendar with comprehensive day/year information<br>
+                        • Hindu calendar with Tithi and Nakshatra calculations<br>
+                        • Islamic calendar with accurate Hijri year conversion<br>
+                        • Ethiopian calendar with 13-month system<br>
+                        • Date converter between different calendar systems<br><br>
+                        
+                        <strong>🌙 Lunar Information:</strong><br>
+                        • Current moon phase with visual representation<br>
+                        • Moon age, distance, and illumination percentage<br>
+                        • Lunar cycle visualization and upcoming phases<br>
+                        • Rise and set times calculation<br><br>
+                        
+                        <strong>📱 Mobile-Optimized UI:</strong><br>
+                        • Touch-friendly controls for all devices<br>
+                        • Responsive design for all screen sizes<br>
+                        • Simple navigation tabs for easy access
+                    </div>
+                </div>
+                
+                <div class="calendar-item">
+                    <h4>🛠️ TECHNICAL IMPLEMENTATION</h4>
+                    <div class="additional-info" style="line-height: 1.6;">
+                        <strong>Technologies Used:</strong><br>
+                        • Three.js for 3D graphics and planetary rendering<br>
+                        • WebGL for hardware-accelerated graphics<br>
+                        • Advanced CSS3 for cosmic UI theming<br>
+                        • JavaScript for astronomical calculations<br>
+                        • Responsive design principles<br><br>
+                        
+                        <strong>Performance Features:</strong><br>
+                        • FPS counter for performance monitoring<br>
+                        • Efficient rendering optimized for mobile devices<br>
+                        • Loading screen during 3D system initialization<br>
+                        • Smooth animations with optimized frame rates<br><br>
+                        
+                        <strong>Astronomical Accuracy:</strong><br>
+                        • Real orbital mechanics and planetary positions<br>
+                        • Accurate calendar conversion algorithms<br>
+                        • Precise lunar phase calculations<br>
+                        • Scientific astronomical data integration
+                    </div>
+                </div>
+                
+                <div class="calendar-item">
+                    <h4>🎯 PROJECT GOALS</h4>
+                    <div class="additional-info" style="line-height: 1.6;">
+                        This Cosmic Explorer Simulator was designed to provide an immersive, 
+                        educational experience for understanding our solar system and various 
+                        calendar systems used throughout human history. The goal is to make 
+                        complex astronomical concepts accessible through interactive 3D 
+                        visualization while maintaining scientific accuracy.
+                        <br><br>
+                        The multi-calendar system serves to bridge different cultural 
+                        approaches to timekeeping, helping users understand how different 
+                        civilizations have measured and organized time based on astronomical 
+                        observations.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Location Picker Modal -->
+    <div id="locationPickerModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; backdrop-filter: blur(5px);">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 800px; background: rgba(0, 20, 50, 0.9); border-radius: 15px; padding: 30px; border: 1px solid var(--ui-accent);">
+            <h3 style="color: var(--ui-accent); font-family: 'Orbitron', sans-serif; margin-bottom: 20px; text-align: center;">📍 Select Location</h3>
+            <div id="map" style="width: 100%; height: 400px; border-radius: 10px; overflow: hidden;"></div>
+            <div style="display: flex; gap: 15px; margin-top: 20px;">
+                <input type="text" id="locationSearch" placeholder="Search location..." style="flex: 1; padding: 12px; border-radius: 8px; border: none; background: rgba(0, 30, 70, 0.7); color: white;">
+                <button onclick="searchLocation()" class="cosmic-btn" style="padding: 12px 25px;">Search</button>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
+                <div class="control-group">
+                    <label>Latitude:</label>
+                    <input type="number" id="modalLatitude" step="0.0001" style="width: 100%;">
+                </div>
+                <div class="control-group">
+                    <label>Longitude:</label>
+                    <input type="number" id="modalLongitude" step="0.0001" style="width: 100%;">
+                </div>
+            </div>
+            <div style="display: flex; justify-content: center; gap: 15px; margin-top: 25px;">
+                <button onclick="applyLocation()" class="cosmic-btn">Apply Location</button>
+                <button onclick="hideLocationPicker()" class="cosmic-btn" style="background: linear-gradient(135deg, rgba(255, 50, 50, 0.7) 0%, rgba(200, 0, 0, 0.7) 100%);">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD0vQj9HXl8JN6wZ0X7Q9X8X3X3X3X3X3X&libraries=places"></script>
+    <script>
+        // Initialize particle background
+        document.addEventListener('DOMContentLoaded', function() {
+            particlesJS('particles-js', {
+                "particles": {
+                    "number": {
+                        "value": 300,
+                        "density": {
+                            "enable": true,
+                            "value_area": 800
+                        }
+                    },
+                    "color": {
+                        "value": "#ffffff"
+                    },
+                    "shape": {
+                        "type": "circle",
+                        "stroke": {
+                            "width": 0,
+                            "color": "#000000"
+                        },
+                        "polygon": {
+                            "nb_sides": 5
+                        }
+                    },
+                    "opacity": {
+                        "value": 0.5,
+                        "random": true,
+                        "anim": {
+                            "enable": true,
+                            "speed": 1,
+                            "opacity_min": 0.1,
+                            "sync": false
+                        }
+                    },
+                    "size": {
+                        "value": 2,
+                        "random": true,
+                        "anim": {
+                            "enable": true,
+                            "speed": 2,
+                            "size_min": 0.1,
+                            "sync": false
+                        }
+                    },
+                    "line_linked": {
+                        "enable": true,
+                        "distance": 150,
+                        "color": "#00aaff",
+                        "opacity": 0.2,
+                        "width": 1
+                    },
+                    "move": {
+                        "enable": true,
+                        "speed": 1,
+                        "direction": "none",
+                        "random": true,
+                        "straight": false,
+                        "out_mode": "out",
+                        "bounce": false,
+                        "attract": {
+                            "enable": true,
+                            "rotateX": 600,
+                            "rotateY": 1200
+                        }
+                    }
+                },
+                "interactivity": {
+                    "detect_on": "canvas",
+                    "events": {
+                        "onhover": {
+                            "enable": true,
+                            "mode": "grab"
+                        },
+                        "onclick": {
+                            "enable": true,
+                            "mode": "push"
+                        },
+                        "resize": true
+                    },
+                    "modes": {
+                        "grab": {
+                            "distance": 140,
+                            "line_linked": {
+                                "opacity": 0.5
+                            }
+                        },
+                        "bubble": {
+                            "distance": 400,
+                            "size": 40,
+                            "duration": 2,
+                            "opacity": 8,
+                            "speed": 3
+                        },
+                        "repulse": {
+                            "distance": 200,
+                            "duration": 0.4
+                        },
+                        "push": {
+                            "particles_nb": 4
+                        },
+                        "remove": {
+                            "particles_nb": 2
+                        }
+                    }
+                },
+                "retina_detect": true
+            });
+        });
+
+        // Global variables for 3D scene
+        let scene, camera, renderer, controls;
+        let planets = {}, orbits = {};
+        let animationId;
+        let isAnimating = true;
+        let currentDate = new Date();
+        let timeSpeedMultiplier = 525600; // Default: 1 minute = 1 year
+        let selectedPlanet = 'earth';
+        
+        // FPS counter variables
+        let fps = 0;
+        let lastTime = Date.now();
+        let frameCount = 0;
+        
+        // Location variables
+        let map, marker, geocoder;
+        let currentLocation = {
+            lat: 28.6139,
+            lng: 77.2090,
+            name: "New Delhi, India"
+        };
+        
+        // Sun path visualization
+        let sunPathCanvas, sunPathCtx;
+        
+        // Planet data with real astronomical values (scaled for visualization)
+        const planetData = {
+            sun: { 
+                distance: 0, size: 8, color: 0xffff00, period: 0, 
+                realDistance: 0, realSize: 1392700, velocity: 0,
+                texture: 'https://threejs.org/examples/textures/planets/sun_surface_4096.jpg'
+            },
+            mercury: { 
+                distance: 20, size: 1, color: 0x8c7853, period: 88,
+                realDistance: 57.9, realSize: 4879, velocity: 47.4,
+                texture: 'https://threejs.org/examples/textures/planets/mercury_1024.jpg'
+            },
+            venus: { 
+                distance: 30, size: 1.5, color: 0xffc649, period: 225,
+                realDistance: 108.2, realSize: 12104, velocity: 35.0,
+                texture: 'https://threejs.org/examples/textures/planets/venus_surface_1024.jpg'
+            },
+            earth: { 
+                distance: 40, size: 1.6, color: 0x6b93d6, period: 365.25,
+                realDistance: 149.6, realSize: 12756, velocity: 29.8,
+                texture: 'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg',
+                bumpMap: 'https://threejs.org/examples/textures/planets/earth_normal_2048.jpg',
+                specularMap: 'https://threejs.org/examples/textures/planets/earth_specular_2048.jpg'
+            },
+            mars: { 
+                distance: 55, size: 1.2, color: 0xcd5c5c, period: 687,
+                realDistance: 227.9, realSize: 6792, velocity: 24.1,
+                texture: 'https://threejs.org/examples/textures/planets/mars_1024.jpg'
+            },
+            jupiter: { 
+                distance: 85, size: 4, color: 0xd8ca9d, period: 4333,
+                realDistance: 778.6, realSize: 142984, velocity: 13.1,
+                texture: 'https://threejs.org/examples/textures/planets/jupiter_1024.jpg'
+            },
+            saturn: { 
+                distance: 110, size: 3.5, color: 0xfad5a5, period: 10759,
+                realDistance: 1432.0, realSize: 120536, velocity: 9.7,
+                texture: 'https://threejs.org/examples/textures/planets/saturn_1024.jpg',
+                ringTexture: 'https://threejs.org/examples/textures/planets/saturn_ring_2048.png'
+            },
+            uranus: { 
+                distance: 140, size: 2.5, color: 0x4fd0e7, period: 30687,
+                realDistance: 2867.0, realSize: 51118, velocity: 6.8,
+                texture: 'https://threejs.org/examples/textures/planets/uranus_1024.jpg'
+            },
+            neptune: { 
+                distance: 170, size: 2.4, color: 0x4b70dd, period: 60190,
+                realDistance: 4515.0, realSize: 49528, velocity: 5.4,
+                texture: 'https://threejs.org/examples/textures/planets/neptune_1024.jpg'
+            }
+        };
+
+        // Initialize everything when page loads
+        window.addEventListener('load', function() {
+            // Set default dates
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('dateInput').value = today;
+            document.getElementById('calendarDate').value = today;
+            document.getElementById('lunarDate').value = today;
+            document.getElementById('astroDate').value = today;
+            
+            // Initialize 3D solar system
+            setTimeout(() => {
+                init3DSolarSystem();
+                initSunPathVisualization();
+                hideLoadingScreen();
+            }, 2000);
+            
+            // Start FPS counter
+            updateFPS();
+            
+            // Initialize location fields
+            updateLocationInfo();
+        });
+
+        function hideLoadingScreen() {
+            gsap.to("#loadingScreen", {
+                opacity: 0,
+                duration: 1,
+                ease: "power2.inOut",
+                onComplete: function() {
+                    document.getElementById('loadingScreen').style.display = 'none';
+                }
+            });
+        }
+
+        function updateFPS() {
+            frameCount++;
+            const now = Date.now();
+            if (now - lastTime >= 1000) {
+                fps = Math.round((frameCount * 1000) / (now - lastTime));
+                document.getElementById('fpsCounter').textContent = `FPS: ${fps}`;
+                frameCount = 0;
+                lastTime = now;
+            }
+            requestAnimationFrame(updateFPS);
+        }
+
+        function init3DSolarSystem() {
+            const container = document.getElementById('solarSystemCanvas');
+            
+            // Scene setup
+            scene = new THREE.Scene();
+            
+            // Add ambient light (increased intensity for better visibility)
+            const ambientLight = new THREE.AmbientLight(0x555555);
+            scene.add(ambientLight);
+            
+            // Add directional light for sun (increased intensity)
+            const sunLight = new THREE.PointLight(0xffffff, 2, 1000);
+            sunLight.position.set(0, 0, 0);
+            scene.add(sunLight);
+            
+            // Add hemisphere light for more natural lighting
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
+            hemiLight.position.set(0, 500, 0);
+            scene.add(hemiLight);
+            
+            // Add directional light for highlights
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(-1, 1, 1);
+            scene.add(dirLight);
+            
+            camera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, 0.1, 10000);
+            renderer = new THREE.WebGLRenderer({ 
+                antialias: true, 
+                alpha: true,
+                powerPreference: "high-performance"
+            });
+            renderer.setSize(container.offsetWidth, container.offsetHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setClearColor(0x000011, 1);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // Create sun
+            createSun();
+
+            // Create planets and orbits
+            Object.keys(planetData).forEach(planetName => {
+                if (planetName !== 'sun') {
+                    createPlanet(planetName);
+                    createOrbit(planetName);
+                }
+            });
+
+            // Setup camera controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.screenSpacePanning = false;
+            controls.minDistance = 50;
+            controls.maxDistance = 1000;
+            controls.maxPolarAngle = Math.PI;
+
+            // Position camera
+            resetCamera();
+
+            // Start animation
+            animate();
+
+            // Update planetary positions for current date
+            updatePlanetaryPositions();
+        }
+
+        function createSun() {
+            const data = planetData.sun;
+            
+            // Create sun geometry
+            const geometry = new THREE.SphereGeometry(data.size, 64, 64);
+            
+            // Load texture
+            const textureLoader = new THREE.TextureLoader();
+            const texture = textureLoader.load(data.texture);
+            
+            const material = new THREE.MeshBasicMaterial({ 
+                map: texture,
+                emissive: 0xffaa00,
+                emissiveIntensity: 1
+            });
+            
+            const sun = new THREE.Mesh(geometry, material);
+            
+            // Add sun glow effect (more intense)
+            const glowGeometry = new THREE.SphereGeometry(data.size * 1.8, 32, 32);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: 0xffaa00,
+                transparent: true,
+                opacity: 0.3,
+                blending: THREE.AdditiveBlending
+            });
+            const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+            sun.add(glow);
+            
+            // Add corona effect (more intense)
+            const coronaGeometry = new THREE.SphereGeometry(data.size * 3, 32, 32);
+            const coronaMaterial = new THREE.MeshBasicMaterial({
+                color: 0xff6600,
+                transparent: true,
+                opacity: 0.2,
+                blending: THREE.AdditiveBlending
+            });
+            const corona = new THREE.Mesh(coronaGeometry, coronaMaterial);
+            sun.add(corona);
+            
+            // Animation for corona
+            function animateCorona() {
+                corona.scale.x = 1 + Math.sin(Date.now() * 0.001) * 0.1;
+                corona.scale.y = 1 + Math.cos(Date.now() * 0.0013) * 0.1;
+                corona.scale.z = 1 + Math.sin(Date.now() * 0.0017) * 0.1;
+                requestAnimationFrame(animateCorona);
+            }
+            animateCorona();
+            
+            planets.sun = sun;
+            scene.add(sun);
+        }
+
+        function createPlanet(planetName) {
+            const data = planetData[planetName];
+            const geometry = new THREE.SphereGeometry(data.size, 64, 64);
+            
+            // Load texture
+            const textureLoader = new THREE.TextureLoader();
+            const texture = textureLoader.load(data.texture);
+            
+            let material;
+            
+            if (planetName === 'earth') {
+                // Special material for Earth with bump and specular maps
+                const bumpMap = textureLoader.load(data.bumpMap);
+                const specularMap = textureLoader.load(data.specularMap);
+                
+                material = new THREE.MeshPhongMaterial({
+                    map: texture,
+                    bumpMap: bumpMap,
+                    bumpScale: 0.1, // Increased bump scale
+                    specularMap: specularMap,
+                    specular: new THREE.Color('grey'),
+                    shininess: 10, // Increased shininess
+                    emissive: 0x000000,
+                    emissiveIntensity: 0.2
+                });
+            } else {
+                material = new THREE.MeshPhongMaterial({ 
+                    map: texture,
+                    shininess: 20, // Increased shininess
+                    emissive: 0x000000,
+                    emissiveIntensity: 0.1
+                });
+            }
+            
+            const planet = new THREE.Mesh(geometry, material);
+            planet.castShadow = true;
+            planet.receiveShadow = true;
+            
+            // Add rings for Saturn
+            if (planetName === 'saturn') {
+                const ringGeometry = new THREE.RingGeometry(data.size + 1, data.size + 2.5, 64);
+                const ringTexture = textureLoader.load(data.ringTexture);
+                const ringMaterial = new THREE.MeshBasicMaterial({ 
+                    map: ringTexture,
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 0.9 // Increased opacity
+                });
+                const rings = new THREE.Mesh(ringGeometry, ringMaterial);
+                rings.rotation.x = Math.PI / 2;
+                planet.add(rings);
+            }
+            
+            // Add atmospheric glow for Earth (more visible)
+            if (planetName === 'earth') {
+                const atmosphereGeometry = new THREE.SphereGeometry(data.size * 1.2, 64, 64);
+                const atmosphereMaterial = new THREE.MeshPhongMaterial({
+                    color: 0x6b93d6,
+                    transparent: true,
+                    opacity: 0.3, // Increased opacity
+                    shininess: 10
+                });
+                const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
+                planet.add(atmosphere);
+            }
+            
+            planets[planetName] = planet;
+            scene.add(planet);
+        }
+
+        function createOrbit(planetName) {
+            const data = planetData[planetName];
+            const geometry = new THREE.RingGeometry(data.distance - 0.2, data.distance + 0.2, 128);
+            const material = new THREE.MeshBasicMaterial({ 
+                color: 0x555555, // Brighter orbit color
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.3 // Increased opacity
+            });
+            
+            const orbit = new THREE.Mesh(geometry, material);
+            orbit.rotation.x = Math.PI / 2;
+            orbits[planetName] = orbit;
+            scene.add(orbit);
+        }
+
+        function animate() {
+            if (isAnimating) {
+                // Update planet positions based on time
+                const time = Date.now() * 0.001;
+                
+                Object.keys(planets).forEach(planetName => {
+                    if (planetName !== 'sun') {
+                        const planet = planets[planetName];
+                        const data = planetData[planetName];
+                        
+                        // Calculate orbital position
+                        const speed = timeSpeedMultiplier / data.period;
+                        const angle = time * speed * 0.01;
+                        
+                        planet.position.x = Math.cos(angle) * data.distance;
+                        planet.position.z = Math.sin(angle) * data.distance;
+                        
+                        // Planet rotation
+                        planet.rotation.y += 0.02;
+                    }
+                });
+                
+                // Update selected planet info
+                updatePlanetInfo();
+            }
+            
+            controls.update();
+            renderer.render(scene, camera);
+            animationId = requestAnimationFrame(animate);
+        }
+
+        function updatePlanetInfo() {
+            const planet = planets[selectedPlanet];
+            const data = planetData[selectedPlanet];
+            
+            if (planet && data) {
+                document.getElementById('selectedPlanet').textContent = 
+                    selectedPlanet.charAt(0).toUpperCase() + selectedPlanet.slice(1);
+                document.getElementById('planetDistance').textContent = 
+                    `${data.realDistance} million km`;
+                document.getElementById('planetPeriod').textContent = 
+                    `${data.period} Earth days`;
+                document.getElementById('planetPosition').textContent = 
+                    `X: ${planet.position.x.toFixed(1)}, Y: ${planet.position.y.toFixed(1)}, Z: ${planet.position.z.toFixed(1)}`;
+                
+                const angle = Math.atan2(planet.position.z, planet.position.x) * 180 / Math.PI;
+                document.getElementById('planetAngle').textContent = 
+                    `${((angle + 360) % 360).toFixed(1)}°`;
+                document.getElementById('planetVelocity').textContent = 
+                    `${data.velocity} km/s`;
+            }
+        }
+
+        // Navigation functions
+        function showPage(pageId) {
+            // Hide all pages with animation
+            document.querySelectorAll('.page').forEach(page => {
+                if (page.classList.contains('active')) {
+                    gsap.to(page, {
+                        opacity: 0,
+                        y: 30,
+                        duration: 0.3,
+                        ease: "power2.in",
+                        onComplete: function() {
+                            page.classList.remove('active');
+                        }
+                    });
+                }
+            });
+            
+            // Remove active class from all nav buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected page with animation
+            const page = document.getElementById(pageId);
+            page.classList.add('active');
+            gsap.fromTo(page, 
+                { opacity: 0, y: 30 },
+                { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }
+            );
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+            
+            // If showing astronomical page, update sun path visualization
+            if (pageId === 'astronomical') {
+                updateSunPathVisualization();
+            }
+        }
+
+        function focusPlanet(planetName) {
+            selectedPlanet = planetName;
+            
+            // Remove active from all planet buttons
+            document.querySelectorAll('.cosmic-btn').forEach(btn => {
+                if (btn.textContent.toLowerCase().includes(planetName) || 
+                    (planetName === 'earth' && btn.textContent.includes('🌍'))) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            const planet = planets[planetName];
+            if (planet) {
+                const data = planetData[planetName];
+                let distance = planetName === 'sun' ? 100 : data.distance * 2;
+                
+                // Calculate target position
+                const targetPosition = new THREE.Vector3(
+                    planet.position.x + distance,
+                    planet.position.y + distance * 0.3,
+                    planet.position.z + distance
+                );
+                
+                // Animate camera to target
+                animateCameraTo(targetPosition, planet.position);
+            }
+        }
+
+        function animateCameraTo(targetPosition, lookAtPosition) {
+            const startPosition = camera.position.clone();
+            const startTarget = controls.target.clone();
+            
+            gsap.to(camera.position, {
+                x: targetPosition.x,
+                y: targetPosition.y,
+                z: targetPosition.z,
+                duration: 1.5,
+                ease: "power2.inOut",
+                onUpdate: function() {
+                    controls.target.lerp(lookAtPosition, 0.1);
+                }
+            });
+        }
+
+        function resetCamera() {
+            gsap.to(camera.position, {
+                x: 0,
+                y: 100,
+                z: 200,
+                duration: 1,
+                ease: "power2.inOut",
+                onUpdate: function() {
+                    controls.target.set(0, 0, 0);
+                }
+            });
+        }
+
+        function toggleAnimation() {
+            isAnimating = !isAnimating;
+            const btn = document.getElementById('animationBtn');
+            btn.textContent = isAnimating ? '⏸️ Pause' : '▶️ Play';
+        }
+
+        function setCurrentDateTime() {
+            const now = new Date();
+            document.getElementById('dateInput').value = now.toISOString().split('T')[0];
+            document.getElementById('timeInput').value = now.toTimeString().slice(0, 5);
+            updatePlanetaryPositions();
+        }
+
+        function updatePlanetaryPositions() {
+            const dateStr = document.getElementById('dateInput').value;
+            const timeStr = document.getElementById('timeInput').value;
+            
+            if (dateStr && timeStr) {
+                currentDate = new Date(dateStr + 'T' + timeStr);
+                
+                // Update planet positions based on the selected date
+                const daysSinceEpoch = (currentDate - new Date('2000-01-01')) / (1000 * 60 * 60 * 24);
+                
+                Object.keys(planets).forEach(planetName => {
+                    if (planetName !== 'sun') {
+                        const planet = planets[planetName];
+                        const data = planetData[planetName];
+                        
+                        const angle = (daysSinceEpoch / data.period) * 2 * Math.PI;
+                        planet.position.x = Math.cos(angle) * data.distance;
+                        planet.position.z = Math.sin(angle) * data.distance;
+                    }
+                });
+            }
+        }
+
+        // Calendar conversion functions
+        function convertCalendars() {
+            const dateStr = document.getElementById('calendarDate').value;
+            if (!dateStr) return;
+            
+            const inputDate = new Date(dateStr);
+            
+            // Gregorian
+            const gregorianInfo = {
+                date: inputDate.toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                }),
+                info: `Day ${getDayOfYear(inputDate)} of ${inputDate.getFullYear()}`
+            };
+            
+            // Hindu Calendar (simplified)
+            const hinduYear = inputDate.getFullYear() + 57;
+            const hinduMonths = ['Chaitra', 'Vaisakha', 'Jyestha', 'Ashadha', 'Shravana', 
+                               'Bhadrapada', 'Ashwin', 'Kartik', 'Margashirsha', 'Paush', 
+                               'Magha', 'Phalguna'];
+            const hinduInfo = {
+                date: `${inputDate.getDate()} ${hinduMonths[inputDate.getMonth()]} ${hinduYear} VS`,
+                info: 'Vikram Samvat • Solar Calendar'
+            };
+            
+            // Islamic Calendar (approximate)
+            const islamicDate = gregorianToIslamic(inputDate);
+            const islamicMonths = ['Muharram', 'Safar', 'Rabi al-Awwal', 'Rabi al-Thani', 
+                                  'Jumada al-Awwal', 'Jumada al-Thani', 'Rajab', 'Shaban', 
+                                  'Ramadan', 'Shawwal', 'Dhul Qadah', 'Dhul Hijjah'];
+            const islamicInfo = {
+                date: `${islamicDate.day} ${islamicMonths[islamicDate.month - 1]} ${islamicDate.year} AH`,
+                info: 'Hijri Calendar • Lunar Calendar'
+            };
+            
+            // Ethiopian Calendar
+            const ethiopianDate = gregorianToEthiopian(inputDate);
+            const ethiopianMonths = ['Meskerem', 'Tikimt', 'Hidar', 'Tahsas', 'Tir', 'Yekatit',
+                                   'Megabit', 'Miazia', 'Ginbot', 'Sene', 'Hamle', 'Nehasse', 'Pagume'];
+            const ethiopianInfo = {
+                date: `${ethiopianDate.day} ${ethiopianMonths[ethiopianDate.month - 1]} ${ethiopianDate.year}`,
+                info: `Ethiopian Year ${ethiopianDate.year}`
+            };
+            
+            // Update displays with animations
+            gsap.to("#gregorianDate", {
+                duration: 0.3,
+                opacity: 0,
+                y: -10,
+                onComplete: function() {
+                    document.getElementById('gregorianDate').textContent = gregorianInfo.date;
+                    document.getElementById('gregorianInfo').textContent = gregorianInfo.info;
+                    gsap.to("#gregorianDate", {
+                        duration: 0.3,
+                        opacity: 1,
+                        y: 0
+                    });
+                }
+            });
+            
+            gsap.to("#hinduCalDate", {
+                duration: 0.3,
+                opacity: 0,
+                y: -10,
+                delay: 0.1,
+                onComplete: function() {
+                    document.getElementById('hinduCalDate').textContent = hinduInfo.date;
+                    document.getElementById('hinduCalInfo').textContent = hinduInfo.info;
+                    gsap.to("#hinduCalDate", {
+                        duration: 0.3,
+                        opacity: 1,
+                        y: 0
+                    });
+                }
+            });
+            
+            gsap.to("#islamicCalDate", {
+                duration: 0.3,
+                opacity: 0,
+                y: -10,
+                delay: 0.2,
+                onComplete: function() {
+                    document.getElementById('islamicCalDate').textContent = islamicInfo.date;
+                    document.getElementById('islamicCalInfo').textContent = islamicInfo.info;
+                    gsap.to("#islamicCalDate", {
+                        duration: 0.3,
+                        opacity: 1,
+                        y: 0
+                    });
+                }
+            });
+            
+            gsap.to("#ethiopianCalDate", {
+                duration: 0.3,
+                opacity: 0,
+                y: -10,
+                delay: 0.3,
+                onComplete: function() {
+                    document.getElementById('ethiopianCalDate').textContent = ethiopianInfo.date;
+                    document.getElementById('ethiopianCalInfo').textContent = ethiopianInfo.info;
+                    gsap.to("#ethiopianCalDate", {
+                        duration: 0.3,
+                        opacity: 1,
+                        y: 0
+                    });
+                }
+            });
+            
+            // Astronomical data
+            document.getElementById('julianDay').textContent = getJulianDay(inputDate).toFixed(1);
+            document.getElementById('dayOfYear').textContent = getDayOfYear(inputDate);
+            document.getElementById('weekNumber').textContent = getWeekNumber(inputDate);
+            document.getElementById('dayOfWeek').textContent = inputDate.toLocaleDateString('en-US', { weekday: 'long' });
+        }
+
+        // Lunar data calculation
+        function calculateLunarData() {
+            const dateStr = document.getElementById('lunarDate').value;
+            if (!dateStr) return;
+            
+            const inputDate = new Date(dateStr);
+            const jd = getJulianDay(inputDate);
+            
+            // Lunar calculations
+            const lunarCycle = 29.530588853; // days
+            const knownNewMoon = 2451549.5; // JD of known new moon (Jan 6, 2000)
+            
+            const cyclesSince = (jd - knownNewMoon) / lunarCycle;
+            const currentCycle = cyclesSince - Math.floor(cyclesSince);
+            const ageInDays = currentCycle * lunarCycle;
+            
+            const phase = getMoonPhase(ageInDays);
+            const illumination = (1 - Math.cos((ageInDays / lunarCycle) * Math.PI * 2)) * 50;
+            
+            // Moon distance calculation
+            const distanceVariation = Math.cos((ageInDays / lunarCycle) * 2 * Math.PI);
+            const moonDistance = 384400 + (distanceVariation * 25000);
+            
+            // Angular size
+            const angularSize = (0.5181 * 384400 / moonDistance).toFixed(2);
+            
+            // Update displays with animations
+            gsap.to("#moonPhase", {
+                duration: 0.3,
+                opacity: 0,
+                y: -10,
+                onComplete: function() {
+                    document.getElementById('moonPhase').textContent = phase;
+                    document.getElementById('moonPhaseInfo').textContent = `Age: ${ageInDays.toFixed(1)} days`;
+                    gsap.to("#moonPhase", {
+                        duration: 0.3,
+                        opacity: 1,
+                        y: 0
+                    });
+                }
+            });
+            
+            // Update other fields
+            document.getElementById('moonAge').textContent = `${ageInDays.toFixed(1)} days`;
+            document.getElementById('moonIllumination').textContent = `${illumination.toFixed(1)}%`;
+            document.getElementById('moonDistance').textContent = `${moonDistance.toFixed(0)} km`;
+            document.getElementById('moonAngularSize').textContent = `${angularSize}°`;
+            document.getElementById('moonRise').textContent = calculateMoonRise(ageInDays);
+            document.getElementById('moonSet').textContent = calculateMoonSet(ageInDays);
+            
+            // Update visual
+            updateLunarPhaseVisual(ageInDays);
+            
+            // Next phases
+            document.getElementById('nextMoonPhases').textContent = getNextMoonPhases(jd);
+        }
+
+        function updateLunarPhaseVisual(age) {
+            const visual = document.getElementById('lunarPhaseVisual');
+            const illumination = (1 - Math.cos((age / 29.530588853) * Math.PI * 2)) / 2;
+            
+            // Create moon phase gradient
+            const gradient = `linear-gradient(90deg, 
+                ${illumination > 0.5 ? '#f0f0f0' : '#333'} 50%, 
+                ${illumination < 0.5 ? '#f0f0f0' : '#333'} 50%)`;
+            
+            // Add shadow for phase
+            const shadowPosition = illumination * 100;
+            visual.style.backgroundImage = `
+                radial-gradient(circle at ${shadowPosition}% 50%, 
+                    transparent 0%, 
+                    transparent 45%, 
+                    ${illumination > 0.5 ? '#333' : '#f0f0f0'} 45%, 
+                    ${illumination > 0.5 ? '#333' : '#f0f0f0'} 55%, 
+                    transparent 55%, 
+                    transparent 100%),
+                ${gradient}
+            `;
+            
+            // Add animation
+            gsap.fromTo(visual, 
+                { scale: 0.8, rotation: -20 },
+                { scale: 1, rotation: 0, duration: 1, ease: "elastic.out(1, 0.5)" }
+            );
+        }
+
+        // Initialize sun path visualization
+        function initSunPathVisualization() {
+            sunPathCanvas = document.getElementById('sunPathCanvas');
+            sunPathCtx = sunPathCanvas.getContext('2d');
+            
+            // Set canvas size to match container
+            const container = document.getElementById('sunPathContainer');
+            sunPathCanvas.width = container.offsetWidth;
+            sunPathCanvas.height = container.offsetHeight;
+            
+            updateSunPathVisualization();
+        }
+
+        // Update sun path visualization
+        function updateSunPathVisualization() {
+            const dateStr = document.getElementById('astroDate').value;
+            if (!dateStr) return;
+            
+            const inputDate = new Date(dateStr);
+            const lat = parseFloat(document.getElementById('latitude').value) || 28.6139;
+            const lng = parseFloat(document.getElementById('longitude').value) || 77.2090;
+            
+            // Clear canvas
+            sunPathCtx.clearRect(0, 0, sunPathCanvas.width, sunPathCanvas.height);
+            
+            // Draw background
+            sunPathCtx.fillStyle = 'rgba(0, 20, 50, 0.7)';
+            sunPathCtx.fillRect(0, 0, sunPathCanvas.width, sunPathCanvas.height);
+            
+            // Draw grid lines
+            sunPathCtx.strokeStyle = 'rgba(0, 170, 255, 0.2)';
+            sunPathCtx.lineWidth = 1;
+            
+            // Vertical grid lines (hours)
+            for (let i = 0; i <= 24; i += 2) {
+                const x = (i / 24) * sunPathCanvas.width;
+                sunPathCtx.beginPath();
+                sunPathCtx.moveTo(x, 0);
+                sunPathCtx.lineTo(x, sunPathCanvas.height);
+                sunPathCtx.stroke();
+                
+                // Add hour labels
+                sunPathCtx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                sunPathCtx.font = '12px Arial';
+                sunPathCtx.fillText(`${i}:00`, x - 15, sunPathCanvas.height - 5);
+            }
+            
+            // Horizontal grid lines (altitude)
+            for (let alt = -30; alt <= 90; alt += 15) {
+                const y = sunPathCanvas.height - ((alt + 30) / 120) * sunPathCanvas.height;
+                sunPathCtx.beginPath();
+                sunPathCtx.moveTo(0, y);
+                sunPathCtx.lineTo(sunPathCanvas.width, y);
+                sunPathCtx.stroke();
+                
+                // Add altitude labels
+                sunPathCtx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                sunPathCtx.font = '12px Arial';
+                sunPathCtx.fillText(`${alt}°`, 5, y - 5);
+            }
+            
+            // Calculate sun positions throughout the day
+            const sunPositions = [];
+            for (let hour = 0; hour <= 24; hour += 0.5) {
+                const date = new Date(inputDate);
+                date.setHours(hour, 0, 0, 0);
+                
+                const sunPos = SunCalc.getPosition(date, lat, lng);
+                const altitude = sunPos.altitude * 180 / Math.PI;
+                const azimuth = sunPos.azimuth * 180 / Math.PI;
+                
+                sunPositions.push({
+                    hour,
+                    altitude,
+                    azimuth
+                });
+            }
+            
+            // Draw sun path
+            sunPathCtx.strokeStyle = 'rgba(255, 204, 0, 0.8)';
+            sunPathCtx.lineWidth = 2;
+            sunPathCtx.beginPath();
+            
+            sunPositions.forEach((pos, index) => {
+                if (pos.altitude < -10) return; // Don't draw when too far below horizon
+                
+                const x = (pos.hour / 24) * sunPathCanvas.width;
+                const y = sunPathCanvas.height - ((pos.altitude + 30) / 120) * sunPathCanvas.height;
+                
+                if (index === 0) {
+                    sunPathCtx.moveTo(x, y);
+                } else {
+                    sunPathCtx.lineTo(x, y);
+                }
+            });
+            
+            sunPathCtx.stroke();
+            
+            // Draw current sun position
+            const now = new Date();
+            const currentHour = now.getHours() + now.getMinutes() / 60;
+            const currentSunPos = SunCalc.getPosition(now, lat, lng);
+            const currentAlt = currentSunPos.altitude * 180 / Math.PI;
+            
+            if (currentAlt > -10) {
+                const currentX = (currentHour / 24) * sunPathCanvas.width;
+                const currentY = sunPathCanvas.height - ((currentAlt + 30) / 120) * sunPathCanvas.height;
+                
+                // Draw sun circle
+                sunPathCtx.fillStyle = 'rgba(255, 204, 0, 0.8)';
+                sunPathCtx.beginPath();
+                sunPathCtx.arc(currentX, currentY, 8, 0, Math.PI * 2);
+                sunPathCtx.fill();
+                
+                // Add glow effect
+                const gradient = sunPathCtx.createRadialGradient(
+                    currentX, currentY, 8,
+                    currentX, currentY, 20
+                );
+                gradient.addColorStop(0, 'rgba(255, 204, 0, 0.8)');
+                gradient.addColorStop(1, 'rgba(255, 204, 0, 0)');
+                
+                sunPathCtx.fillStyle = gradient;
+                sunPathCtx.beginPath();
+                sunPathCtx.arc(currentX, currentY, 20, 0, Math.PI * 2);
+                sunPathCtx.fill();
+                
+                // Update sun position info
+                document.getElementById('sunPositionInfo').textContent = 
+                    `Sun position at current time: ${currentHour.toFixed(1)}h, Altitude: ${currentAlt.toFixed(1)}°, Azimuth: ${(currentSunPos.azimuth * 180 / Math.PI).toFixed(1)}°`;
+            } else {
+                document.getElementById('sunPositionInfo').textContent = 
+                    'Sun is below the horizon at current time';
+            }
+            
+            // Mark sunrise and sunset
+            const times = SunCalc.getTimes(inputDate, lat, lng);
+            
+            if (times.sunrise) {
+                const sunriseHour = times.sunrise.getHours() + times.sunrise.getMinutes() / 60;
+                const sunriseX = (sunriseHour / 24) * sunPathCanvas.width;
+                const sunriseY = sunPathCanvas.height - 30;
+                
+                sunPathCtx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                sunPathCtx.font = 'bold 12px Arial';
+                sunPathCtx.fillText('↑ Sunrise', sunriseX - 25, sunriseY - 10);
+            }
+            
+            if (times.sunset) {
+                const sunsetHour = times.sunset.getHours() + times.sunset.getMinutes() / 60;
+                const sunsetX = (sunsetHour / 24) * sunPathCanvas.width;
+                const sunsetY = sunPathCanvas.height - 30;
+                
+                sunPathCtx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                sunPathCtx.font = 'bold 12px Arial';
+                sunPathCtx.fillText('↓ Sunset', sunsetX - 25, sunsetY - 10);
+            }
+        }
+
+        // Astronomical data calculation
+        function calculateAstronomicalData() {
+            const dateStr = document.getElementById('astroDate').value;
+            const lat = parseFloat(document.getElementById('latitude').value) || 28.6139;
+            const lng = parseFloat(document.getElementById('longitude').value) || 77.2090;
+            
+            if (!dateStr) return;
+            
+            const inputDate = new Date(dateStr);
+            const dayOfYear = getDayOfYear(inputDate);
+            const totalDays = isLeapYear(inputDate.getFullYear()) ? 366 : 365;
+            
+            // Use SunCalc for accurate solar calculations
+            const times = SunCalc.getTimes(inputDate, lat, lng);
+            
+            // Format times
+            const formatTime = (date) => {
+                if (!date) return '-';
+                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            };
+            
+            // Calculate daylight duration
+            let daylightDuration = '-';
+            if (times.sunrise && times.sunset) {
+                const durationMs = times.sunset - times.sunrise;
+                const hours = Math.floor(durationMs / (1000 * 60 * 60));
+                const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+                daylightDuration = `${hours}h ${minutes}m`;
+            }
+            
+            // Solar declination
+            const sunPos = SunCalc.getPosition(inputDate, lat, lng);
+            const declination = sunPos.declination * 180 / Math.PI;
+            
+            // Equation of time (simplified)
+            const B = (2 * Math.PI * (dayOfYear - 81)) / 365;
+            const equationOfTime = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);
+            
+            // Sidereal time
+            const jd = getJulianDay(inputDate);
+            const T = (jd - 2451545.0) / 36525;
+            const siderealTime = 280.46061837 + 360.98564736629 * (jd - 2451545) + 0.000387933 * T * T;
+            
+            // Season calculation
+            const season = getSeason(dayOfYear, totalDays);
+            
+            // Update displays with animations
+            const fields = [
+                'sunrise', 'sunset', 'solarNoon', 'daylightDuration',
+                'solarDeclination', 'equationOfTime', 'siderealTime',
+                'earthSeason', 'daysInYear', 'daysRemaining'
+            ];
+            
+            fields.forEach((field, index) => {
+                gsap.to(`#${field}`, {
+                    duration: 0.3,
+                    opacity: 0,
+                    y: -10,
+                    delay: index * 0.05,
+                    onComplete: function() {
+                        let value;
+                        switch(field) {
+                            case 'sunrise':
+                                value = formatTime(times.sunrise);
+                                break;
+                            case 'sunset':
+                                value = formatTime(times.sunset);
+                                break;
+                            case 'solarNoon':
+                                value = formatTime(times.solarNoon);
+                                break;
+                            case 'daylightDuration':
+                                value = daylightDuration;
+                                break;
+                            case 'solarDeclination':
+                                value = `${declination.toFixed(2)}°`;
+                                break;
+                            case 'equationOfTime':
+                                value = `${equationOfTime.toFixed(1)} min`;
+                                break;
+                            case 'siderealTime':
+                                value = `${((siderealTime % 360) / 15).toFixed(2)}h`;
+                                break;
+                            case 'earthSeason':
+                                value = season;
+                                break;
+                            case 'daysInYear':
+                                value = totalDays;
+                                break;
+                            case 'daysRemaining':
+                                value = totalDays - dayOfYear;
+                                break;
+                        }
+                        document.getElementById(field).textContent = value;
+                        gsap.to(`#${field}`, {
+                            duration: 0.3,
+                            opacity: 1,
+                            y: 0
+                        });
+                    }
+                });
+            });
+            
+            // Update sun path visualization
+            updateSunPathVisualization();
+        }
+
+        // Location functions
+        function updateLocationInfo() {
+            document.getElementById('latitudeLocation').textContent = `Location: ${currentLocation.name}`;
+            document.getElementById('longitudeLocation').textContent = `Location: ${currentLocation.name}`;
+        }
+
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        currentLocation.lat = position.coords.latitude;
+                        currentLocation.lng = position.coords.longitude;
+                        
+                        // Reverse geocode to get location name
+                        if (!geocoder) {
+                            geocoder = new google.maps.Geocoder();
+                        }
+                        
+                        geocoder.geocode({ location: currentLocation }, (results, status) => {
+                            if (status === 'OK' && results[0]) {
+                                currentLocation.name = results[0].formatted_address;
+                            } else {
+                                currentLocation.name = `${currentLocation.lat.toFixed(4)}, ${currentLocation.lng.toFixed(4)}`;
+                            }
+                            
+                            // Update UI
+                            document.getElementById('latitude').value = currentLocation.lat;
+                            document.getElementById('longitude').value = currentLocation.lng;
+                            updateLocationInfo();
+                            
+                            // Recalculate astronomical data
+                            calculateAstronomicalData();
+                        });
+                    },
+                    (error) => {
+                        alert('Unable to retrieve your location: ' + error.message);
+                    }
+                );
+            } else {
+                alert('Geolocation is not supported by your browser');
+            }
+        }
+
+        function showLocationPicker() {
+            document.getElementById('locationPickerModal').style.display = 'block';
+            
+            // Initialize map if not already done
+            if (!map) {
+                const mapElement = document.getElementById('map');
+                map = new google.maps.Map(mapElement, {
+                    center: { lat: currentLocation.lat, lng: currentLocation.lng },
+                    zoom: 8,
+                    styles: [
+                        {
+                            "elementType": "geometry",
+                            "stylers": [
+                                {
+                                    "color": "#1d2c4d"
+                                }
+                            ]
+                        },
+                        {
+                            "elementType": "labels.text.fill",
+                            "stylers": [
+                                {
+                                    "color": "#8ec3b9"
+                                }
+                            ]
+                        },
+                        {
+                            "elementType": "labels.text.stroke",
+                            "stylers": [
+                                {
+                                    "color": "#1a3646"
+                                }
+                            ]
+                        }
+                    ]
+                });
+                
+                // Add marker
+                marker = new google.maps.Marker({
+                    position: { lat: currentLocation.lat, lng: currentLocation.lng },
+                    map: map,
+                    draggable: true
+                });
+                
+                // Update fields when marker is dragged
+                marker.addListener('dragend', () => {
+                    const position = marker.getPosition();
+                    document.getElementById('modalLatitude').value = position.lat();
+                    document.getElementById('modalLongitude').value = position.lng();
+                });
+                
+                // Initialize geocoder
+                geocoder = new google.maps.Geocoder();
+            }
+            
+            // Set current values
+            document.getElementById('modalLatitude').value = currentLocation.lat;
+            document.getElementById('modalLongitude').value = currentLocation.lng;
+        }
+
+        function hideLocationPicker() {
+            document.getElementById('locationPickerModal').style.display = 'none';
+        }
+
+        function searchLocation() {
+            const address = document.getElementById('locationSearch').value;
+            if (!address) return;
+            
+            geocoder.geocode({ address: address }, (results, status) => {
+                if (status === 'OK' && results[0]) {
+                    const location = results[0].geometry.location;
+                    map.setCenter(location);
+                    marker.setPosition(location);
+                    
+                    document.getElementById('modalLatitude').value = location.lat();
+                    document.getElementById('modalLongitude').value = location.lng();
+                } else {
+                    alert('Location not found: ' + status);
+                }
+            });
+        }
+
+        function applyLocation() {
+            const lat = parseFloat(document.getElementById('modalLatitude').value);
+            const lng = parseFloat(document.getElementById('modalLongitude').value);
+            
+            if (isNaN(lat) || isNaN(lng)) {
+                alert('Please enter valid coordinates');
+                return;
+            }
+            
+            currentLocation.lat = lat;
+            currentLocation.lng = lng;
+            
+            // Get location name
+            geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+                if (status === 'OK' && results[0]) {
+                    currentLocation.name = results[0].formatted_address;
+                } else {
+                    currentLocation.name = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                }
+                
+                // Update UI
+                document.getElementById('latitude').value = lat;
+                document.getElementById('longitude').value = lng;
+                updateLocationInfo();
+                
+                // Recalculate astronomical data
+                calculateAstronomicalData();
+                
+                // Hide modal
+                hideLocationPicker();
+            });
+        }
+
+        // Helper functions
+        function getJulianDay(date) {
+            const a = Math.floor((14 - (date.getMonth() + 1)) / 12);
+            const y = date.getFullYear() + 4800 - a;
+            const m = (date.getMonth() + 1) + 12 * a - 3;
+            return date.getDate() + Math.floor((153 * m + 2) / 5) + 365 * y + 
+                   Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
+        }
+
+        function getDayOfYear(date) {
+            const start = new Date(date.getFullYear(), 0, 0);
+            const diff = date - start;
+            return Math.floor(diff / (1000 * 60 * 60 * 24));
+        }
+
+        function getWeekNumber(date) {
+            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        }
+
+        function isLeapYear(year) {
+            return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+        }
+
+        function gregorianToIslamic(gregorianDate) {
+            // Simplified Islamic calendar conversion
+            const jd = getJulianDay(gregorianDate);
+            const islamicEpoch = 1948439.5; // July 16, 622 CE
+            const daysSince = jd - islamicEpoch;
+            const islamicYear = Math.floor(daysSince / 354.367) + 1;
+            const dayInYear = daysSince % 354.367;
+            const islamicMonth = Math.floor(dayInYear / 29.5) + 1;
+            const islamicDay = Math.floor(dayInYear % 29.5) + 1;
+            
+            return { 
+                year: Math.max(1, islamicYear), 
+                month: Math.max(1, Math.min(12, islamicMonth)), 
+                day: Math.max(1, Math.min(30, islamicDay)) 
+            };
+        }
+
+        function gregorianToEthiopian(gregorianDate) {
+            // Simplified Ethiopian calendar conversion
+            const year = gregorianDate.getFullYear();
+            const month = gregorianDate.getMonth() + 1;
+            const day = gregorianDate.getDate();
+            
+            let ethYear = year - 7;
+            let ethMonth = month + 4;
+            let ethDay = day;
+            
+            if (ethMonth > 13) {
+                ethMonth -= 13;
+                ethYear += 1;
+            }
+            
+            if (ethMonth > 12) {
+                ethMonth = 13;
+                ethDay = Math.min(ethDay, 6);
+            }
+            
+            return { 
+                year: ethYear, 
+                month: Math.max(1, Math.min(13, ethMonth)), 
+                day: Math.max(1, ethDay) 
+            };
+        }
+
+        function getMoonPhase(age) {
+            if (age < 1.84566) return '🌑 New Moon';
+            if (age < 5.53699) return '🌒 Waxing Crescent';
+            if (age < 9.22831) return '🌓 First Quarter';
+            if (age < 12.91963) return '🌔 Waxing Gibbous';
+            if (age < 16.61096) return '🌕 Full Moon';
+            if (age < 20.30228) return '🌖 Waning Gibbous';
+            if (age < 23.99361) return '🌗 Last Quarter';
+            if (age < 27.68493) return '🌘 Waning Crescent';
+            return '🌑 New Moon';
+        }
+
+        function calculateMoonRise(age) {
+            // Simplified moon rise calculation
+            const baseTime = 6 + (age * 0.8);
+            return formatTime(baseTime);
+        }
+
+        function calculateMoonSet(age) {
+            // Simplified moon set calculation
+            const baseTime = 18 + (age * 0.8);
+            return formatTime(baseTime);
+        }
+
+        function getNextMoonPhases(jd) {
+            const lunarCycle = 29.530588853;
+            const knownNewMoon = 2451549.5;
+            const cyclesSince = (jd - knownNewMoon) / lunarCycle;
+            const nextNewMoon = Math.ceil(cyclesSince) * lunarCycle + knownNewMoon;
+            
+            const phases = [
+                { name: 'New Moon', offset: 0 },
+                { name: 'First Quarter', offset: 7.4 },
+                { name: 'Full Moon', offset: 14.8 },
+                { name: 'Last Quarter', offset: 22.1 }
+            ];
+            
+            let result = '';
+            phases.forEach(phase => {
+                const phaseJD = nextNewMoon + phase.offset;
+                const phaseDate = new Date((phaseJD - 2440587.5) * 86400000);
+                result += `${phase.name}: ${phaseDate.toLocaleDateString()}\n`;
+            });
+            
+            return result.trim();
+        }
+
+        function getSeason(dayOfYear, totalDays) {
+            const ratio = dayOfYear / totalDays;
+            if (ratio < 0.25) return '❄️ Winter';
+            if (ratio < 0.5) return '🌸 Spring';
+            if (ratio < 0.75) return '☀️ Summer';
+            return '🍂 Autumn';
+        }
+
+        function formatTime(timeInHours) {
+            const hours = Math.floor(timeInHours);
+            const minutes = Math.floor((timeInHours - hours) * 60);
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (renderer && camera) {
+                const container = document.getElementById('solarSystemCanvas');
+                if (container) {
+                    camera.aspect = container.offsetWidth / container.offsetHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(container.offsetWidth, container.offsetHeight);
+                }
+            }
+            
+            // Update particle canvas size
+            if (window.pJSDom && window.pJSDom.length > 0) {
+                window.pJSDom[0].pJS.canvas.size();
+            }
+            
+            // Update sun path canvas
+            if (sunPathCanvas) {
+                const container = document.getElementById('sunPathContainer');
+                sunPathCanvas.width = container.offsetWidth;
+                sunPathCanvas.height = container.offsetHeight;
+                updateSunPathVisualization();
+            }
+        });
+
+        // Update time speed
+        document.getElementById('timeSpeed').addEventListener('change', (e) => {
+            timeSpeedMultiplier = parseInt(e.target.value);
+        });
+
+        // Auto-calculate functions on page load
+        setTimeout(() => {
+            convertCalendars();
+            calculateLunarData();
+            calculateAstronomicalData();
+        }, 2000);
+    </script>
+</body>
+</html>
